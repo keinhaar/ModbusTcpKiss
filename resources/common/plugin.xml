@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin
+    id="de.exware.modbus"
+    name="ModbusTCP"
+    version="${VERSION}"
+    provider-name="Martin Schmitz"
+    >
+    <classpath>
+    	<pathelement value="."></pathelement>
+    	<pathelement value="de.exware.modbus.jar"></pathelement>
+    </classpath>
+
+</plugin>
