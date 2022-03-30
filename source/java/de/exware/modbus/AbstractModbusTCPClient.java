@@ -30,6 +30,7 @@ abstract public class AbstractModbusTCPClient
     public void connect() throws IOException
     {
         socket = new Socket(host, port);
+        socket.setSoTimeout(10000);
         in = new BufferedInputStream(socket.getInputStream());
         out = new BufferedOutputStream(socket.getOutputStream());
     }
@@ -58,10 +59,10 @@ abstract public class AbstractModbusTCPClient
     public long readUInt32(int address) throws ModbusException, IOException
     {
         byte[] data = readRegister(address, 2);
-        long i = ((data[0] & 0xff) << 24) 
-            + ((data[1] & 0xff) << 16) 
-            + ((data[2] & 0xff) << 8) 
-            + (data[3] & 0xff);
+        long i = ((data[2] & 0xff) << 24) 
+            + ((data[3] & 0xff) << 16) 
+            + ((data[0] & 0xff) << 8) 
+            + (data[1] & 0xff);
         return i;
     }
     
@@ -76,21 +77,21 @@ abstract public class AbstractModbusTCPClient
     {
         byte[] data = readRegister(address, 4);
         BigInteger bint = BigInteger.ZERO;
-        bint = bint.add(BigInteger.valueOf(data[0] & 0xff));
+        bint = bint.add(BigInteger.valueOf(data[6] & 0xff));
         bint = bint.shiftLeft(8);
-        bint = bint.add(BigInteger.valueOf(data[1] & 0xff));
-        bint = bint.shiftLeft(8);
-        bint = bint.add(BigInteger.valueOf(data[2] & 0xff));
-        bint = bint.shiftLeft(8);
-        bint = bint.add(BigInteger.valueOf(data[3] & 0xff));
+        bint = bint.add(BigInteger.valueOf(data[7] & 0xff));
         bint = bint.shiftLeft(8);
         bint = bint.add(BigInteger.valueOf(data[4] & 0xff));
         bint = bint.shiftLeft(8);
         bint = bint.add(BigInteger.valueOf(data[5] & 0xff));
         bint = bint.shiftLeft(8);
-        bint = bint.add(BigInteger.valueOf(data[6] & 0xff));
+        bint = bint.add(BigInteger.valueOf(data[2] & 0xff));
         bint = bint.shiftLeft(8);
-        bint = bint.add(BigInteger.valueOf(data[7] & 0xff));
+        bint = bint.add(BigInteger.valueOf(data[3] & 0xff));
+        bint = bint.shiftLeft(8);
+        bint = bint.add(BigInteger.valueOf(data[0] & 0xff));
+        bint = bint.shiftLeft(8);
+        bint = bint.add(BigInteger.valueOf(data[1] & 0xff));
         return bint;
     }
     
@@ -144,8 +145,8 @@ abstract public class AbstractModbusTCPClient
     public float readFloat32(int address) throws ModbusException, IOException
     {
         byte[] data = readRegister(address, 2);
-        int high = ((data[0] & 0xff) << 8) + (data[1] & 0xff);
-        int low = ((data[2] & 0xff) << 8) + (data[3] & 0xff);
+        int high = ((data[2] & 0xff) << 8) + (data[3] & 0xff);
+        int low = ((data[0] & 0xff) << 8) + (data[1] & 0xff);
         
         int fint = ((high & 0xffff) << 16) + (low & 0xffff);
         return Float.intBitsToFloat(fint);
@@ -184,8 +185,8 @@ abstract public class AbstractModbusTCPClient
         int i2 = ((buf[0] & 0xff) << 8) + (buf[1] & 0xff);
         System.out.println(i2);
         
-        int high = 17045;
-        int low = -24163;
+        int high = 0x438E;
+        int low = 0xCCCD;
         int fint = ((high & 0xffff) << 16) + (low & 0xffff);
         float f = Float.intBitsToFloat(fint);
         System.out.println(f);

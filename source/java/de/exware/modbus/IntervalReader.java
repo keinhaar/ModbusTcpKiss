@@ -7,8 +7,9 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import de.exware.modbus.solaredge.SolarEdgeBattery;
-import de.exware.modbus.solaredge.SolarEdgeInverter;
+import de.exware.modbus.solaredge.SolarEdgeBatteryHandler;
+import de.exware.modbus.solaredge.SolarEdgeInverterHandler;
+import de.exware.modbus.solaredge.SolarEdgeMeterHandler;
 
 /**
  * Reads Modbus data in a background Thread by calling the registered Handlers one after the other.
@@ -27,12 +28,19 @@ public class IntervalReader
         this.client = client;
     }
 
+    public IntervalReader(AbstractModbusTCPClient client, int interval)
+    {
+        this.client = client;
+        this.interval = interval;
+    }
+
     public static void main(String[] args) throws IOException, ModbusException
     {
-        ModbusTCPProxyClient client = new ModbusTCPProxyClient("server", 1502);
+        AbstractModbusTCPClient client = new ModbusTCPProxyClient("server", 1502);
         IntervalReader reader = new IntervalReader(client);
-        reader.addHandler(new SolarEdgeInverter());
-        reader.addHandler(new SolarEdgeBattery());
+        reader.addHandler(new SolarEdgeInverterHandler());
+        reader.addHandler(new SolarEdgeBatteryHandler());
+        reader.addHandler(new SolarEdgeMeterHandler(1));
         reader.start();
     }
 
@@ -83,12 +91,14 @@ public class IntervalReader
             };
         };
         int delay = 11 - new Date().getSeconds() % interval;
-        timer.scheduleAtFixedRate(runner, delay * 1000, interval * 1000);
+        timer.schedule(runner, delay * 1000, interval * 1000);
     }
     
     public void stop()
     {
-        runner.cancel();
+        if(runner != null)
+        {
+            runner.cancel();
+        }
     }
-
 }

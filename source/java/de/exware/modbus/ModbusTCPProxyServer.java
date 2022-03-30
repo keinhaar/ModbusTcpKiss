@@ -53,6 +53,7 @@ public class ModbusTCPProxyServer
                         Socket socket = serverSocket.accept();
                         if (socket != null)
                         {
+                            socket.setSoTimeout(10000);
                             Connection con = new Connection();
                             con.socket = socket;
                             con.in = new BufferedInputStream(socket.getInputStream());
@@ -119,6 +120,22 @@ public class ModbusTCPProxyServer
                     catch (IOException e1)
                     {
                         e1.printStackTrace();
+                        try
+                        {
+                            modbus.close();
+                        }
+                        catch (IOException e)
+                        {
+                            e.printStackTrace();
+                        }
+                        try
+                        {
+                            modbus.connect();
+                        }
+                        catch (IOException e)
+                        {
+                            e.printStackTrace();
+                        }
                     }
                     catch (InterruptedException e)
                     {
@@ -178,15 +195,15 @@ public class ModbusTCPProxyServer
                     byte[] buf = dl.getBytes();
                     con.out.write(buf);
                     con.out.write(data);
+                    con.out.flush();
                 }
                 catch (Exception e)
                 {
                     e.printStackTrace();
                     con.out.write(-1);
-                    modbus.close();
-                    modbus.connect();
+                    con.out.flush();
+                    throw new IOException("", e);
                 }
-                con.out.flush();
             }
         }
     }

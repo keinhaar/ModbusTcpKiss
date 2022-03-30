@@ -5,7 +5,7 @@ import de.exware.modbus.AbstractModbusTCPClient;
 import de.exware.modbus.ModbusDataHandler;
 import de.exware.modbus.ModbusException;
 
-public class SolarEdgeInverter implements ModbusDataHandler
+public class SolarEdgeInverterHandler implements ModbusDataHandler
 {
     private String manufacturer;
     private String model;
@@ -19,18 +19,21 @@ public class SolarEdgeInverter implements ModbusDataHandler
     private double dcAmpere;
     private int acPowerScale;
     private double acPower;
+    private int dcPowerScale;
+    private double dcPower;
     private int acFrequenceScale;
     private double acFrequence;
     private int lifeTimePowerScale;
     private double lifeTimePower;
     
-    public SolarEdgeInverter()
+    public SolarEdgeInverterHandler()
     {
     }
     
     @Override
     public void afterRead()
     {
+        System.out.println("");
         System.out.println("Inverter Data");
         System.out.println("Manufacturer: " + manufacturer);
         System.out.println("Model: " + model);
@@ -43,6 +46,7 @@ public class SolarEdgeInverter implements ModbusDataHandler
         System.out.println("Frequence: " + acFrequence);
         System.out.println("DC Voltage: " + dcVoltage);
         System.out.println("DC Ampere: " + dcAmpere);
+        System.out.println("DC Power: " + dcPower / 1000 + " KW");
     }
     
     @Override
@@ -58,12 +62,15 @@ public class SolarEdgeInverter implements ModbusDataHandler
         dcVoltage = client.readUInt16(40098) * Math.pow(10,dcVoltageScale);
         dcAmpereScale = client.readInt16(40097);
         dcAmpere = client.readInt16(40096) * Math.pow(10,dcAmpereScale);
+        dcPowerScale = client.readInt16(40101);
+        dcPower = client.readInt16(40100) * Math.pow(10,dcPowerScale);
         acPowerScale = client.readInt16(40084);
         acPower = client.readInt16(40083) * Math.pow(10,acPowerScale);
         acFrequenceScale = client.readInt16(40086);
         acFrequence = client.readUInt16(40085) * Math.pow(10,acFrequenceScale);
         lifeTimePowerScale = client.readInt16(40095);
         lifeTimePower = client.readInt32(40093) * Math.pow(10,lifeTimePowerScale);
+//        lifeTimePower = client.readUInt16(40142);
     }
     
     public enum InverterStatus
@@ -172,5 +179,15 @@ public class SolarEdgeInverter implements ModbusDataHandler
     public double getLifeTimePower()
     {
         return lifeTimePower;
+    }
+
+    public double getDcPower()
+    {
+        return dcPower;
+    }
+
+    public void setDcPower(double dcPower)
+    {
+        this.dcPower = dcPower;
     }
 }
