@@ -40,6 +40,22 @@ public class ModbusTCPProxyClient extends AbstractModbusTCPClient
         return buf;
     }
  
+    @Override
+    protected void writeRegisters(int tid, int address, byte... data) throws ModbusException, IOException
+    {
+        out.write(ModbusTCPProxyServer.WRITE_REGISTER_COMMAND.getBytes());
+        write(tid, 5);
+        write(address, 5);
+        write(data.length, 5);
+        out.write(data);
+        out.flush();
+        int ret = in.read();
+        if(ret != 0)
+        {
+            throw new ModbusException("Error on ModbusTCPProxyServer", null);
+        }
+    }
+    
     public void close() throws IOException
     {
         if(out != null)

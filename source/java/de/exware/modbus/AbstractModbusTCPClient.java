@@ -172,7 +172,23 @@ abstract public class AbstractModbusTCPClient
         return readRegister(tid, address, count);
     }
 
+    public void writeUInt16(int address, int value) throws ModbusException, IOException
+    {
+        byte[] data = new byte[2];
+        data[0] = (byte) (value >>> 8);
+        data[1] = (byte) (value);
+        writeRegisters(address, data);
+    }
+    
+    public void writeRegisters(int address, byte ... data) throws ModbusException, IOException
+    {
+        int tid = (int) (Math.random() * 65535);
+        writeRegisters(tid, address, data);
+    }
+
     abstract protected byte[] readRegister(int tid, int address, int count) throws ModbusException, IOException;
+
+    abstract protected void writeRegisters(int tid, int address, byte ... data) throws ModbusException, IOException;
 
     public static void main(String[] args) throws IOException, ModbusException
     {
@@ -219,7 +235,8 @@ abstract public class AbstractModbusTCPClient
 
 enum FunctionCode
 {
-    HoldingRegister(3);
+    HoldingRegister(3)
+    , WriteMultipleRegister(16);
 
     private int code;
 

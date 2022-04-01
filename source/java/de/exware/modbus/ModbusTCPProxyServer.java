@@ -21,8 +21,9 @@ import java.util.List;
  */
 public class ModbusTCPProxyServer
 {
-    static final String CLOSE_COMMAND = "CLOSE";
-    static final String READ_REGISTER_COMMAND = "RREAD";
+    static final String CLOSE_COMMAND =          "CLOSE     ";
+    static final String READ_REGISTER_COMMAND =  "REG_READ  ";
+    static final String WRITE_REGISTER_COMMAND = "REG_WRITE ";
     private ModbusTCPClient modbus;
     private ServerSocket serverSocket;
     private int listeningPort;
@@ -170,7 +171,7 @@ public class ModbusTCPProxyServer
     {
         if(con.in.available() > 0)
         {
-            String cmd = con.read(5);
+            String cmd = con.read(10);
             if(cmd.equals(CLOSE_COMMAND))
             {
                 con.in.close();
@@ -195,6 +196,27 @@ public class ModbusTCPProxyServer
                     byte[] buf = dl.getBytes();
                     con.out.write(buf);
                     con.out.write(data);
+                    con.out.flush();
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                    con.out.write(-1);
+                    con.out.flush();
+                    throw new IOException("", e);
+                }
+            }
+            else if (cmd.equals(WRITE_REGISTER_COMMAND))
+            {
+                try
+                {
+                    int transactionId = Integer.parseInt(con.read(5));
+                    int adress = Integer.parseInt(con.read(5));
+                    int registerCount = Integer.parseInt(con.read(5));
+                    int dataCount = Integer.parseInt(con.read(5));
+                    byte[] buf = con.readRaw(dataCount);
+                    getModbusClient().writeRegisters(transactionId, adress, buf);
+                    con.out.write(0);
                     con.out.flush();
                 }
                 catch (Exception e)
@@ -236,6 +258,12 @@ public class ModbusTCPProxyServer
 
         private String read(int length) throws IOException
         {
+            byte[] buf = readRaw(length);
+            return new String(buf);
+        }
+        
+        private byte[] readRaw(int length) throws IOException
+        {
             byte[] buf = new byte[length];
             int pos = 0;
             int count = 0;
@@ -244,7 +272,7 @@ public class ModbusTCPProxyServer
                 int ret = in.read(buf, pos, buf.length - pos);
                 count += ret;
             }
-            return new String(buf);
+            return buf;
         }
     }
 }

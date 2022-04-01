@@ -25,6 +25,8 @@ public class SolarEdgeInverterHandler implements ModbusDataHandler
     private double acFrequence;
     private int lifeTimePowerScale;
     private double lifeTimePower;
+    private int activePowerLimit;
+    private double cosPhi;
     
     public SolarEdgeInverterHandler()
     {
@@ -47,6 +49,8 @@ public class SolarEdgeInverterHandler implements ModbusDataHandler
         System.out.println("DC Voltage: " + dcVoltage);
         System.out.println("DC Ampere: " + dcAmpere);
         System.out.println("DC Power: " + dcPower / 1000 + " KW");
+        System.out.println("Active Power Limit: " + activePowerLimit);
+        System.out.println("CosPhi: " + cosPhi);
     }
     
     @Override
@@ -70,7 +74,8 @@ public class SolarEdgeInverterHandler implements ModbusDataHandler
         acFrequence = client.readUInt16(40085) * Math.pow(10,acFrequenceScale);
         lifeTimePowerScale = client.readInt16(40095);
         lifeTimePower = client.readInt32(40093) * Math.pow(10,lifeTimePowerScale);
-//        lifeTimePower = client.readUInt16(40142);
+        activePowerLimit = client.readUInt16(61441);
+        cosPhi = client.readFloat32(61442);
     }
     
     public enum InverterStatus
@@ -189,5 +194,10 @@ public class SolarEdgeInverterHandler implements ModbusDataHandler
     public void setDcPower(double dcPower)
     {
         this.dcPower = dcPower;
+    }
+
+    public double getActivePowerLimit()
+    {
+        return activePowerLimit;
     }
 }

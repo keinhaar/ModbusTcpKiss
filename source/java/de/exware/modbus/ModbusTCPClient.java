@@ -44,6 +44,32 @@ public class ModbusTCPClient extends AbstractModbusTCPClient
         return ret;
     }
 
+    @Override
+    protected void writeRegisters(int transactionId, int address, byte ... data) throws ModbusException, IOException
+    {
+        checkRange(0, 65535, address);
+        checkRange(0, 246, data.length);
+        if(data.length % 2 != 0)
+        {
+            throw new ModbusException("Number of bytes must be equal", null);
+        }
+        byte[] header = createHeader(transactionId, 7+data.length, FunctionCode.WriteMultipleRegister.getCode());
+        byte[] hdata = new byte[5];
+        hdata[0] = (byte) (address >> 8);
+        hdata[1] = (byte) (address);
+        int registerCount = data.length / 2; 
+        hdata[2] = (byte) (registerCount >> 8);
+        hdata[3] = (byte) (registerCount);
+        hdata[4] = (byte) (data.length);
+        out.write(header);
+        out.write(hdata);
+        out.write(data);
+        out.flush();
+        byte[] buf = new byte[1000];
+        in.read(buf);        
+        checkError(buf);
+    }
+    
     private void checkError(byte[] buf) throws ModbusException
     {
         if((buf[7] & 0xFF) > 0x80)
@@ -103,6 +129,26 @@ public class ModbusTCPClient extends AbstractModbusTCPClient
     
     public static void main(String[] args) throws IOException, ModbusException
     {
+        ModbusTCPClient client = new ModbusTCPClient("192.168.100.60", 1502);
+        client.connect();
+        int v = client.readUInt16(57348);
+        System.out.println(v);
+        client.writeUInt16(57348, 0);
+        v = client.readUInt16(57348);
+        System.out.println(v);
+        
+        v = client.readUInt16(57354);
+        System.out.println(v);
+        client.writeUInt16(57354, 7);
+        v = client.readUInt16(57354);
+        System.out.println(v);
+        
+        v = client.readUInt16(57358);
+        System.out.println(v);
+//        client.writeUInt16(57358, 7);
+        v = client.readUInt16(57358);
+        System.out.println(v);
+        
         byte[] buf = new byte[2];
         buf[0] = (byte) 0xff;
         buf[1] = (byte) 0xff;
