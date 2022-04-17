@@ -13,24 +13,23 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.exware.modbus.solaredge.SolarEdgeBatteryHandler;
+
 /**
  * This class forwards Modbus Request to another ModbusTCP implementation.
  * This is useful if the Modbus Server only accepts a single connection.
  * @author martin
  *
  */
-public class ModbusTCPProxyServer
+public class ModbusTCPProxy
 {
-    static final String CLOSE_COMMAND =          "CLOSE     ";
-    static final String READ_REGISTER_COMMAND =  "REG_READ  ";
-    static final String WRITE_REGISTER_COMMAND = "REG_WRITE ";
     private ModbusTCPClient modbus;
     private ServerSocket serverSocket;
     private int listeningPort;
     private List<Connection> connections = new ArrayList<>();
     private boolean run = false;
    
-    public ModbusTCPProxyServer(ModbusTCPClient modbus, int listeningPort)
+    public ModbusTCPProxy(ModbusTCPClient modbus, int listeningPort)
     {
         this.setModbusClient(modbus);
         this.listeningPort = listeningPort;
@@ -104,9 +103,9 @@ public class ModbusTCPProxyServer
                 }
             }
         };
-        Thread t = new Thread(runner,"ModbusProxyServer");
+        Thread t = new Thread(runner,"ModbusProxy");
         t.start();
-        t = new Thread("ModbusProxyClientHandler")
+        t = new Thread("ModbusProxyHandler")
         {
             @Override
             public void run()
@@ -171,52 +170,21 @@ public class ModbusTCPProxyServer
     {
         if(con.in.available() > 0)
         {
-            String cmd = con.read(10);
-            if(cmd.equals(CLOSE_COMMAND))
-            {
-                con.in.close();
-                con.out.close();
-                con.socket.close();
-                connections.remove(con);
-            }
-            else if (cmd.equals(READ_REGISTER_COMMAND))
+            byte[] header = con.readRaw(8);
+            int transactionId = AbstractModbusTCPClient.convert2UInt16(header[1], header[0]);
+            int length = AbstractModbusTCPClient.convert2UInt16(header[5], header[4]);
+            int unit = header[6];
+            int functionCode = header[7];
+            if (functionCode == FunctionCode.HoldingRegister.getCode())
             {
                 try
                 {
-                    int transactionId = Integer.parseInt(con.read(5));
-                    int adress = Integer.parseInt(con.read(5));
-                    int registerCount = Integer.parseInt(con.read(5));
-                    byte[] data = getModbusClient().readRegister(transactionId, adress, registerCount);
-                    con.out.write(0);
-                    String dl = ""+data.length;
-                    while(dl.length() < 4)
-                    {
-                        dl = "0" + dl;
-                    }
-                    byte[] buf = dl.getBytes();
-                    con.out.write(buf);
+                    byte[] data = con.readRaw(4);
+                    int adress = AbstractModbusTCPClient.convert2UInt16(data[1], data[0]);
+                    int registerCount = AbstractModbusTCPClient.convert2UInt16(data[3], data[2]);
+                    getModbusClient().setUnitIdentifier(unit);
+                    data = getModbusClient().readRegisterRaw(transactionId, adress, registerCount);
                     con.out.write(data);
-                    con.out.flush();
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                    con.out.write(-1);
-                    con.out.flush();
-                    throw new IOException("", e);
-                }
-            }
-            else if (cmd.equals(WRITE_REGISTER_COMMAND))
-            {
-                try
-                {
-                    int transactionId = Integer.parseInt(con.read(5));
-                    int adress = Integer.parseInt(con.read(5));
-                    int registerCount = Integer.parseInt(con.read(5));
-                    int dataCount = Integer.parseInt(con.read(5));
-                    byte[] buf = con.readRaw(dataCount);
-                    getModbusClient().writeRegisters(transactionId, adress, buf);
-                    con.out.write(0);
                     con.out.flush();
                 }
                 catch (Exception e)
@@ -274,6 +242,18 @@ public class ModbusTCPProxyServer
             }
             return buf;
         }
+    }
+    
+    public static void main(String[] args) throws UnknownHostException, IOException
+    {
+        ModbusTCPClient client = new ModbusTCPClient("192.168.100.60", 1502);
+        ModbusTCPProxy proxy = new ModbusTCPProxy(client, 5502);
+        proxy.connect();
+        ModbusTCPClient proxyClient = new ModbusTCPClient("localhost", 5502);
+        proxyClient.connect();
+        IntervalReader reader = new IntervalReader(proxyClient);
+        reader.addHandler(new SolarEdgeBatteryHandler());
+        reader.start();
     }
 }
 

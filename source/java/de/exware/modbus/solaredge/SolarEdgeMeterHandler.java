@@ -41,10 +41,18 @@ public class SolarEdgeMeterHandler implements ModbusDataHandler
         model = client.readString(40139 + offset, 16);
         version = client.readString(40163 + offset, 8);
         modbusId = client.readUInt16(40187 + offset);
-        int totalScale = client.readInt16(40210);
-        totalPower = client.readInt16(40206) * Math.pow(10,totalScale);
+        totalPower = readPower(client, 40206);
     }
 
+    private double readPower(AbstractModbusTCPClient client, int baseadress) throws ModbusException, IOException
+    {
+        byte[] buf = client.readRegister(baseadress, 5);
+        int value = client.convert2Int16(buf[1], buf[0]);
+        int scale = client.convert2Int16(buf[9], buf[8]);
+        double ret = value * Math.pow( 10, scale);
+        return ret;
+    }
+    
     public int getMeterNumber()
     {
         return meterNumber;

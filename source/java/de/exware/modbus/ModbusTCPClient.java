@@ -20,9 +20,18 @@ public class ModbusTCPClient extends AbstractModbusTCPClient
     @Override
     public byte[] readRegister(int transactionId, int address, int count) throws ModbusException, IOException
     {
+        byte[] buf = readRegisterRaw(transactionId, address, count);
+        int size = buf[8] & 0xff;
+        byte[] ret = new byte[size];
+        System.arraycopy(buf, 9,ret, 0, size);
+        return ret;
+    }
+
+    @Override
+    public byte[] readRegisterRaw(int transactionId, int address, int count) throws ModbusException, IOException
+    {
         checkRange(0, 65535, address);
         checkRange(0, 100, count);
-        byte[] ret = null;
         byte[] header = createHeader(transactionId, 6, FunctionCode.HoldingRegister.getCode());
         byte[] data = new byte[4];
         data[0] = (byte) (address >> 8);
@@ -35,13 +44,7 @@ public class ModbusTCPClient extends AbstractModbusTCPClient
         byte[] buf = new byte[1000];
         in.read(buf);        
         checkError(buf);
-        
-        ret = new byte[buf[8]];
-        for(int i=0;i<buf[8];i++)
-        {
-            ret[i] = buf[9+i];
-        }
-        return ret;
+        return buf;
     }
 
     @Override
@@ -193,6 +196,16 @@ public class ModbusTCPClient extends AbstractModbusTCPClient
         in.close();
         out.close();
         socket.close();
+    }
+
+    public int getUnitIdentifier()
+    {
+        return unitIdentifier;
+    }
+
+    public void setUnitIdentifier(int unitIdentifier)
+    {
+        this.unitIdentifier = unitIdentifier;
     }
 }
 

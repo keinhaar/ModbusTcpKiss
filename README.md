@@ -30,15 +30,20 @@ There are predefined methods which will encode data like
 - void writeUInt16(int address, int value)
 
 If you have special needs, you could always use the basic method:
-- void WriteRegisters(int address, byte[] data)
+- void writeRegisters(int address, byte[] data)
 The data array must be a multiple of 2, because each register has 16 bit. It's up to you to encode the data as required
 by your device.
 
 
 ## Additional Features
-We added an optional Proxy, that allows us to make more then 1 connection to a device, that otherwise would only accept on connection (like SolarEdge Inverters). The ModbusTCPProxyClient is used the same way as the ModbusTCPClient decribed above. The only difference is, that it will connect to a ModbusTCPProxyServer, which must be startet first.
+We added an optional Proxy, that allows us to make more then 1 connection to a device, that otherwise would only accept on connection (like SolarEdge Inverters). The ModbusTCPClient can be connected to the Proxy like to a real Modbus Server. 
+The ModbusTCPProxy must be created and started before connecting.
 <pre>
-  ModbusTCPClient client = new ModbusTCPClient("SRVERNAME", 1502);
-  ModbusTCPProxyServer proxy = new ModbusTCPProxyServer(client, 1502);
+  ModbusTCPClient client = new ModbusTCPClient("SERVERNAME", 1502);
+  ModbusTCPProxy proxy = new ModbusTCPProxyServer(client, 5502);
   proxy.connect();
+  ModbusTCPClient proxyClient = new ModbusTCPClient("localhost", 5502);
+  proxyClient.readString(57600, 16);
 </pre>
+In this case ```proxyClient.readString(57600, 16);``` and ```client.readString(57600, 16);``` should produce the
+same results.

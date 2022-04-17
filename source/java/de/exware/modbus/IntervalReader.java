@@ -36,7 +36,7 @@ public class IntervalReader
 
     public static void main(String[] args) throws IOException, ModbusException
     {
-        AbstractModbusTCPClient client = new ModbusTCPProxyClient("server", 1502);
+        AbstractModbusTCPClient client = new ModbusTCPClient("localhost", 1502);
         IntervalReader reader = new IntervalReader(client);
         reader.addHandler(new SolarEdgeInverterHandler());
         reader.addHandler(new SolarEdgeBatteryHandler());

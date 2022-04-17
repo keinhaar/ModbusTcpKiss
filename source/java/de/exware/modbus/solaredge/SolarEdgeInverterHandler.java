@@ -44,9 +44,11 @@ public class SolarEdgeInverterHandler implements ModbusDataHandler
         System.out.println("ModbusId: " + modbusId);
         System.out.println("Status: " + status);
         System.out.println("Power: " + acPower / 1000 + " KW");
+        System.out.println("PowerScale: " + acPowerScale);
         System.out.println("Lifetime Power: " + lifeTimePower / 1000 + " KWh");
         System.out.println("Frequence: " + acFrequence);
         System.out.println("DC Voltage: " + dcVoltage);
+        System.out.println("DC Voltage Scale: " + dcVoltageScale);
         System.out.println("DC Ampere: " + dcAmpere);
         System.out.println("DC Power: " + dcPower / 1000 + " KW");
         System.out.println("Active Power Limit: " + activePowerLimit);
@@ -56,26 +58,54 @@ public class SolarEdgeInverterHandler implements ModbusDataHandler
     @Override
     public void readData(AbstractModbusTCPClient client) throws ModbusException, IOException
     {
-        manufacturer = client.readString(40004, 16);
-        model = client.readString(40020, 16);
-        version = client.readString(40044, 8);
-        serialnumber = client.readString(40052, 16);
+        byte[] buf = client.readRegister(40004, 64);
+        manufacturer = new String(buf, 0, 32).trim(); //client.readString(40004, 16);
+        model = new String(buf, 32, 32).trim(); //client.readString(40020, 16);
+        version = new String(buf, 80, 16).trim(); //client.readString(40044, 8);
+        serialnumber = new String(buf, 96, 32).trim(); //client.readString(40052, 16);
         modbusId = client.readUInt16(40068);
         status = InverterStatus.getStatus(client.readUInt16(40107));
         dcVoltageScale = client.readInt16(40099);
-        dcVoltage = client.readUInt16(40098) * Math.pow(10,dcVoltageScale);
+        dcVoltage = readScaledUInt16(client, 40098);
         dcAmpereScale = client.readInt16(40097);
-        dcAmpere = client.readInt16(40096) * Math.pow(10,dcAmpereScale);
+        dcAmpere = readScaledUInt16(client, 40096);
         dcPowerScale = client.readInt16(40101);
-        dcPower = client.readInt16(40100) * Math.pow(10,dcPowerScale);
+        dcPower = readScaledInt16(client, 40100);
         acPowerScale = client.readInt16(40084);
-        acPower = client.readInt16(40083) * Math.pow(10,acPowerScale);
+        acPower = readScaledInt16(client, 40083);
         acFrequenceScale = client.readInt16(40086);
-        acFrequence = client.readUInt16(40085) * Math.pow(10,acFrequenceScale);
+        acFrequence = readScaledUInt16(client, 40085);
         lifeTimePowerScale = client.readInt16(40095);
-        lifeTimePower = client.readInt32(40093) * Math.pow(10,lifeTimePowerScale);
+        lifeTimePower = readScaledUInt32(client, 40093);
         activePowerLimit = client.readUInt16(61441);
         cosPhi = client.readFloat32(61442);
+    }
+    
+    private double readScaledUInt16(AbstractModbusTCPClient client, int baseadress) throws ModbusException, IOException
+    {
+        byte[] buf = client.readRegister(baseadress, 2);
+        int value = client.convert2UInt16(buf[1], buf[0]);
+        int scale = client.convert2Int16(buf[3], buf[2]);
+        double ret = value * Math.pow( 10, scale);
+        return ret;
+    }
+    
+    private double readScaledInt16(AbstractModbusTCPClient client, int baseadress) throws ModbusException, IOException
+    {
+        byte[] buf = client.readRegister(baseadress, 2);
+        int value = client.convert2Int16(buf[1], buf[0]);
+        int scale = client.convert2Int16(buf[3], buf[2]);
+        double ret = value * Math.pow( 10, scale);
+        return ret;
+    }
+    
+    private double readScaledUInt32(AbstractModbusTCPClient client, int baseadress) throws ModbusException, IOException
+    {
+        byte[] buf = client.readRegister(baseadress, 3);
+        long value = client.convert2UInt32(buf[3], buf[2], buf[1], buf[0]);
+        int scale = client.convert2UInt16(buf[5], buf[4]);
+        double ret = value * Math.pow( 10, scale);
+        return ret;
     }
     
     public enum InverterStatus

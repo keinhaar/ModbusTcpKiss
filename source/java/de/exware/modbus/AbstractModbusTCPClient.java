@@ -45,7 +45,13 @@ abstract public class AbstractModbusTCPClient
     public int readUInt16(int address) throws ModbusException, IOException
     {
         byte[] data = readRegister(address, 1);
-        int i = ((data[0] & 0xff) << 8) + (data[1] & 0xff);
+        int i = convert2UInt16(data[1], data[0]);
+        return i;
+    }
+
+    public static int convert2UInt16(byte low, byte high)
+    {
+        int i = ((high & 0xff) << 8) + (low & 0xff);
         return i;
     }
     
@@ -63,6 +69,15 @@ abstract public class AbstractModbusTCPClient
             + ((data[3] & 0xff) << 16) 
             + ((data[0] & 0xff) << 8) 
             + (data[1] & 0xff);
+        return i;
+    }
+
+    public static long convert2UInt32(byte lowest, byte low, byte high, byte highest)
+    {
+        long i = ((highest & 0xff) << 24) 
+            + ((high & 0xff) << 16) 
+            + ((low & 0xff) << 8) 
+            + (lowest & 0xff);
         return i;
     }
     
@@ -108,6 +123,11 @@ abstract public class AbstractModbusTCPClient
         return new BigInteger(data).intValue();
     }
     
+    public static int convert2Int16(byte low, byte high)
+    {
+        return new BigInteger(new byte[] {high, low}).intValue();
+    }
+    
     /**
      * Read one 32 bit value from the given addess.
      * @param address
@@ -145,10 +165,15 @@ abstract public class AbstractModbusTCPClient
     public float readFloat32(int address) throws ModbusException, IOException
     {
         byte[] data = readRegister(address, 2);
-        int high = ((data[2] & 0xff) << 8) + (data[3] & 0xff);
-        int low = ((data[0] & 0xff) << 8) + (data[1] & 0xff);
+        return convert2Float32(data[1], data[0], data[3], data[2]);
+    }
+    
+    public static float convert2Float32(byte lowest, byte low, byte high, byte highest)
+    {
+        int ihigh = ((highest & 0xff) << 8) + (high & 0xff);
+        int ilow = ((low & 0xff) << 8) + (lowest & 0xff);
         
-        int fint = ((high & 0xffff) << 16) + (low & 0xffff);
+        int fint = ((ihigh & 0xffff) << 16) + (ilow & 0xffff);
         return Float.intBitsToFloat(fint);
     }
     
@@ -185,6 +210,8 @@ abstract public class AbstractModbusTCPClient
         int tid = (int) (Math.random() * 65535);
         writeRegisters(tid, address, data);
     }
+
+    abstract protected byte[] readRegisterRaw(int tid, int address, int count) throws ModbusException, IOException;
 
     abstract protected byte[] readRegister(int tid, int address, int count) throws ModbusException, IOException;
 
@@ -231,22 +258,4 @@ abstract public class AbstractModbusTCPClient
 
     }
         
-}
-
-enum FunctionCode
-{
-    HoldingRegister(3)
-    , WriteMultipleRegister(16);
-
-    private int code;
-
-    FunctionCode(int code)
-    {
-        this.code = code;
-    }
-
-    public int getCode()
-    {
-        return code;
-    }
 }
