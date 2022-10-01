@@ -193,9 +193,15 @@ public class ModbusTCPClient extends AbstractModbusTCPClient
 
     public void close() throws IOException
     {
-        in.close();
-        out.close();
-        socket.close();
+        if(in != null)
+        {
+            in.close();
+            out.close();
+        }
+        if(socket != null)
+        {
+            socket.close();
+        }
     }
 
     public int getUnitIdentifier()
